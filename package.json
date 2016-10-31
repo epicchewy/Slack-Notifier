@@ -1,0 +1,22 @@
+{
+  "name": "slack-notifier",
+  "version": "1.0.0",
+  "description": "Notifier for Slack Mentions",
+  "main": "server.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "author": "Luke Chui",
+  "license": "ISC",
+  "dependencies": {
+    "@slack/client": "3.6.0",
+    "agenda": "0.9.0",
+    "express": "4.14.0",
+    "file-system": "2.2.1",
+    "hat": "0.0.3",
+    "morgan": "1.7.0",
+    "read": "1.0.7",
+    "short-id": "0.1.0-1",
+    "twilio": "2.11.0"
+  }
+}

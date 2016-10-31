@@ -1,0 +1,3 @@
+*.cfg
+node_modules/*
+config.js
