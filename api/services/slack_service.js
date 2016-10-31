@@ -16,7 +16,8 @@ class SlackService {
     this.groupIds = []
     this.IMIds = []
     this.teamName = ''
-    this.dms = []
+    this.dms = {}
+    this.privateMsgs = {}
     this.messages = messages
     this.userId = ''
 
@@ -25,6 +26,7 @@ class SlackService {
       dataStore: new MemoryDataStore()
     })
     this.rtm = rtm
+
     this.web = new WEB(this.token, {
       logLevel: 'debug'
     })
@@ -55,18 +57,29 @@ class SlackService {
 
   listenToMessages () {
     this.rtm.on(RTM_EVENTS.CHANNEL_MARKED, function handleRtmMessage (msg) { // has to be super specifc to the general message
-      messages++
-      this.messages = messages
+      if (this.groupIds.includes(msg.channel)) {
+        const channel = this.rtm.dataStore.getGroupById(msg.channel)
+        if (this.privateMsgs[channel.name]) {
+          this.privateMsgs[channel.name] = this.privateMsgs[channel.name] + 1 
+        } else {
+          this.privateMsgs[channel.name] = 0
+        }
+        
+      } else if (this.IMIds.includes(msg.channel)) {
+        console.log('Incrementing ')
+        const user = this.rtm.dataStore.getUserById(msg.user)
+        if (this.dms[user.name]) {
+          this.dms[user.name] = this.dms[user.name] + 1 
+        } else {
+          this.dms[user.name] = 0
+        }
+      }
     })
   } 
 
-  getMessages () {
-    return this.messages
-  }
-
   clearMessages () {
-    this.messages = 0
     this.dms = {}
+    this.privateMsgs = {}
   }
 
   findChannels () {
