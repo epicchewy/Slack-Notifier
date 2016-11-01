@@ -39,7 +39,12 @@ class SlackService {
 
       const team = this.rtm.dataStore.getTeamById(rtm.activeTeamId)
       this.team = team.name
-      Promise.all([
+      this.getMessageIds()
+    })
+  }
+
+  getMessageIds() {
+    Promise.all([
         this.findChannels(),
         this.findGroups(),
         this.findIMs()
@@ -47,31 +52,30 @@ class SlackService {
         this.channelIds = values[0]
         this.groupIds = values[1]
         this.IMIds = values[2]
-        console.log('ALL IDs: ', this.channelIds, this.groupdIds, this.IMIds)
+        console.log('ALL IDs: ', this.channelIds, this.groupIds, this.IMIds)
         this.listenToMessages()
       }).catch((err) => {
         console.log('Channel errors: ', err)
       })
-    })
   }
 
   listenToMessages () {
-    this.rtm.on(RTM_EVENTS.CHANNEL_MARKED, function handleRtmMessage (msg) { // has to be super specifc to the general message
-      if (this.groupIds.includes(msg.channel)) {
-        const channel = this.rtm.dataStore.getGroupById(msg.channel)
-        if (this.privateMsgs[channel.name]) {
-          this.privateMsgs[channel.name] = this.privateMsgs[channel.name] + 1 
+    let that = this
+    this.rtm.on(RTM_EVENTS.MESSAGE, function handleRtmMessage (msg) { // track amounts of messages coming into groups / IMs
+      if (that.groupIds.indexOf(msg.channel) != -1 && msg.user != that.userId) {
+        const channel = that.rtm.dataStore.getGroupById(msg.channel)
+        if (that.privateMsgs[channel.name]) {
+          that.privateMsgs[channel.name] = that.privateMsgs[channel.name] + 1 
         } else {
-          this.privateMsgs[channel.name] = 0
+          that.privateMsgs[channel.name] = 1
         }
-        
-      } else if (this.IMIds.includes(msg.channel)) {
-        console.log('Incrementing ')
-        const user = this.rtm.dataStore.getUserById(msg.user)
-        if (this.dms[user.name]) {
-          this.dms[user.name] = this.dms[user.name] + 1 
+        console.log(that.privateMsgs)
+      } else if (that.IMIds.indexOf(msg.channel) != -1 && msg.user != that.userId) {
+        const user = that.rtm.dataStore.getUserById(msg.user)
+        if (that.dms[user.name]) {
+          that.dms[user.name] = that.dms[user.name] + 1 
         } else {
-          this.dms[user.name] = 0
+          that.dms[user.name] = 1
         }
       }
     })
@@ -85,9 +89,9 @@ class SlackService {
   findChannels () {
     return new Promise((resolve, reject) => {
       this.web.channels.list().then((channels) => {
-        let channelIds = []
+        let involvedChannels = []
         if (channels.ok == true) {
-          for (let channel in channels) {
+          for (let channel of channels.channels) {
             if (channel.is_member) {
               involvedChannels.push(channel.id)
             }
@@ -103,12 +107,12 @@ class SlackService {
   findGroups () {
     return new Promise((resolve, reject) => {
       this.web.groups.list().then((groups) => {
-        if (privateChannels.ok == true) {
-          let groupdIds = []
-          for (let group in groups) {
-            groupdIds.push(group.id)
+        if (groups.ok == true) {
+          let ids = []
+          for (let group of groups.groups) {
+            ids.push(group.id)
           }
-          return resolve(groupIds)  
+          return resolve(ids)  
         } else {
           return reject('Could not retrieve groups')
         }
@@ -121,7 +125,7 @@ class SlackService {
       this.web.im.list().then((ims) => {
         if (ims.ok == true) {
           let IMIds = []
-          for (let im in ims) {
+          for (let im of ims.ims) {
             IMIds.push(im.id)
           }
           return resolve(IMIds)
@@ -134,9 +138,28 @@ class SlackService {
 
   checkDirectMessages (latest, oldest) {
     return new Promise((resolve, reject) => {
-      Promise.all([
+      let requests = []
+      for (let channelId in this.channelIds) {
+        requsts.push(this.web.channels.info(channelId))
+      }
 
-      ])
+      Promise.all(requests).then((values) => {
+        // aggregate total unread count and per channel unread_notifications
+        console.log('EXAMPLE RES: ', values[0])
+        let totalUnreadCount = 0
+        let notifications = {}
+        for (let channelInfo in values) {
+          totalUnreadCount += channelInfo.unread_count
+          if (channelInfo.unread_count_display > 0) {
+            notifications[channelInfo.name] = channelInfo.unread_count_display
+          }
+        }
+
+        return resolve({
+          totalUnreadCount: totalUnreadCount,
+          notifications: notifications
+        })
+      })
     })
   }
 }
