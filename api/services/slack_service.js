@@ -44,15 +44,22 @@ class SlackService {
   }
 
   getMessageIds() {
+    let latest = new Date()
+    let oldest = new Date()
+    oldest.setMinutes(latest.getMinutes() - 5)
+    let latestTs = Date.parse(latest)/1000
+    let oldestTs = Date.parse(oldest)/1000
     Promise.all([
         this.findChannels(),
         this.findGroups(),
-        this.findIMs()
+        this.findIMs(),
+        this.web.channels.history('C2JP8RZ9D', {latest: latest, oldest: oldest, unreads: 1})
       ]).then((values) => {
         this.channelIds = values[0]
         this.groupIds = values[1]
         this.IMIds = values[2]
-        console.log('ALL IDs: ', this.channelIds, this.groupIds, this.IMIds)
+        console.log('SHIT', values[3])
+        // console.log('ALL IDs: ', this.channelIds, this.groupIds, this.IMIds)
         this.listenToMessages()
       }).catch((err) => {
         console.log('Channel errors: ', err)
@@ -139,8 +146,14 @@ class SlackService {
   checkDirectMessages (latest, oldest) {
     return new Promise((resolve, reject) => {
       let requests = []
+      const opts = {
+        latest: latest,
+        oldest: oldest,
+        unreads: 1
+      }
       for (let channelId in this.channelIds) {
-        requsts.push(this.web.channels.info(channelId))
+        console.log('Current channel id', channelId)
+        requsts.push(this.web.channels.history(channelId, opts))
       }
 
       Promise.all(requests).then((values) => {
@@ -148,18 +161,31 @@ class SlackService {
         console.log('EXAMPLE RES: ', values[0])
         let totalUnreadCount = 0
         let notifications = {}
-        for (let channelInfo in values) {
-          totalUnreadCount += channelInfo.unread_count
-          if (channelInfo.unread_count_display > 0) {
-            notifications[channelInfo.name] = channelInfo.unread_count_display
+        for (let index = 0; index < values.length; index++) {
+          totalUnreadCount += values[index].unread_count
+          const unread = values[index].unread_count_display
+          if (unread > 0) {
+            const channelName = this.rtm.dataStore.getGroupById(this.channelIds[0])
+            notifications[channelName].unread = unread
+            for (let i = 0; i < unread; i++) { // search messages for important tags
+              const numMessages = history.messages.length
+              if (values[index].messages[i].indexOf(this.userId) || 
+                  values[index].messages[i].indexOf('<!channel>') ||
+                  values[index].messages[i].indexOf('<!everyone>')) {
+                notifications[channelName].imporant = true
+                break
+              }
+            }
           }
         }
 
         return resolve({
           totalUnreadCount: totalUnreadCount,
-          notifications: notifications
+          notifications: notifications,
+          dms: this.dms,
+          groups: this.privateMsgs
         })
-      })
+      }).catch(reject)
     })
   }
 }

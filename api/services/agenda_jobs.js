@@ -47,14 +47,14 @@ agenda.define('send-notifications', (job, done) => {
       })
     })
   }
-  agenda.schedule('in 15 minutes', 'send-notifications')
+  agenda.schedule('in 30 seconds', 'send-notifications')
   done()
 })
 
 
 agenda.on('ready', () => {
   console.log('Scheduler is ready')
-  // send notifications every half hour
+  // send notifications every half hour, but keep at 2 seconds for testing purposes
   agenda.schedule('in 2 seconds', 'send-notifications')
 
   agenda.start()

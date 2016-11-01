@@ -34,13 +34,18 @@ function authenticate (key) {
 /**
  * notify() -- Send user a batch of text messages describing the latest Slack updates
  *
- * @param: None
+ * @param: {messages} -- Object of aggregated message data
  * @return: {Promise} -- Promise of text messages of the current iteration
  */
 
-function notify (body) {
+function notify (messages) {
   return new Promise((resolve, reject) => {
     // messages come aggregated
+    console.log("MESSAGE OBJECT: ", messages)
+    const channelInfo = messages.channels
+    const groupInfo = messages.groups
+    const imInfo = messages.ims
+
     
   })
 }
