@@ -41,13 +41,13 @@ agenda.define('send-notifications', (job, done) => {
 
   for (let team in slackTeams) {
     team.checkMessages(latestTs, oldestTs).then((messageObject) => {
-      Twilio.notify(messageObject).then(() => {
+      Twilio.notify(messageObject).then((resp) => {
         team.clearMessages()
-        console.log('Notified at --', new Date())
-      })
+        console.log(`${resp} Notified at --`, new Date())
+      }).catch()
     })
   }
-  agenda.schedule('in 30 seconds', 'send-notifications')
+  agenda.schedule('in 5 minutes', 'send-notifications')
   done()
 })
 

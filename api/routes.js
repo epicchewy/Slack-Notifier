@@ -33,21 +33,21 @@ function init() {
       // send the key to authenticate through twilio
       console.log('Starting up....')
       const slackTeam = new Slack(config.SLACK_TEST_TOKEN)
-      // slackSetupListeners()
-      // const key = shortid.generate()
-      // Twilio.authenticate(key).then((resp) => {
-      //   console.log('Your key has been sent.')
-      //   read({prompt: 'Please enter your authentication key.'}, (err, entry) => {
-      //     if (entry == key) {
-      //       console.log('Success! Starting your notifier!')
+      slackSetupListeners()
+      const key = shortid.generate()
+      Twilio.authenticate(key).then((resp) => {
+        console.log('Your key has been sent.')
+        read({prompt: 'Please enter your authentication key.'}, (err, entry) => {
+          if (entry == key) {
+            console.log('Success! Starting your notifier!')
 
-      //       require('./services/agenda_jobs') 
-      //     }
-      //   })
-      // }).catch((err) => {
-      //   console.log('error sending message', err)
-      //   process.exit(0)
-      // })
+            require('./services/agenda_jobs') 
+          }
+        })
+      }).catch((err) => {
+        console.log('error sending message', err)
+        process.exit(0)
+      })
     } else {
       console.log('Input must be yes/no. Please restart your Slack Notifier')
       process.exit(0)

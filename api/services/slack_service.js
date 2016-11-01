@@ -7,8 +7,6 @@ const MemoryDataStore = require('@slack/client').MemoryDataStore
 const CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS
 const WEB = require('@slack/client').WebClient
 
-let messages = 0
-
 class SlackService {
   constructor (token) {
     this.token = token
@@ -18,7 +16,6 @@ class SlackService {
     this.teamName = ''
     this.dms = {}
     this.privateMsgs = {}
-    this.messages = messages
     this.userId = ''
 
     const rtm = new RTM(this.token, {
@@ -52,14 +49,11 @@ class SlackService {
     Promise.all([
         this.findChannels(),
         this.findGroups(),
-        this.findIMs(),
-        this.web.channels.history('C2JP8RZ9D', {latest: latest, oldest: oldest, unreads: 1})
-      ]).then((values) => {
+        this.findIMs()
+      ]).then((values) => { // intialize arrays of channel, group, IM ids
         this.channelIds = values[0]
         this.groupIds = values[1]
         this.IMIds = values[2]
-        console.log('SHIT', values[3])
-        // console.log('ALL IDs: ', this.channelIds, this.groupIds, this.IMIds)
         this.listenToMessages()
       }).catch((err) => {
         console.log('Channel errors: ', err)
@@ -80,7 +74,7 @@ class SlackService {
       } else if (that.IMIds.indexOf(msg.channel) != -1 && msg.user != that.userId) {
         const user = that.rtm.dataStore.getUserById(msg.user)
         if (that.dms[user.name]) {
-          that.dms[user.name] = that.dms[user.name] + 1 
+          that.dms[user.name] = that.dms[user.name] + 1
         } else {
           that.dms[user.name] = 1
         }
@@ -166,13 +160,14 @@ class SlackService {
           const unread = values[index].unread_count_display
           if (unread > 0) {
             const channelName = this.rtm.dataStore.getGroupById(this.channelIds[0])
-            notifications[channelName].unread = unread
+            notifications[channelName] = {}
+            notifications[channelName]['unread'] = unread
             for (let i = 0; i < unread; i++) { // search messages for important tags
               const numMessages = history.messages.length
               if (values[index].messages[i].indexOf(this.userId) || 
                   values[index].messages[i].indexOf('<!channel>') ||
                   values[index].messages[i].indexOf('<!everyone>')) {
-                notifications[channelName].imporant = true
+                notifications[channelName]['imporant'] = true
                 break
               }
             }

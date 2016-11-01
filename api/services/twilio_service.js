@@ -42,11 +42,78 @@ function notify (messages) {
   return new Promise((resolve, reject) => {
     // messages come aggregated
     console.log("MESSAGE OBJECT: ", messages)
+    const unreadCount = messages.totalUnreadCount
     const channelInfo = messages.channels
     const groupInfo = messages.groups
     const imInfo = messages.ims
 
-    
+    // send total count of unread messages in public channels first
+    twil.sendMessage({
+      to: config.PERSONAL_NUMBER,
+      from: config.TWILIO_NUMBER,
+      body: `In your public channels, you have ${unreadCount} unread messages.`
+    }, (err1, resp1) => {
+      if (err1) {
+        return reject(err1)
+      }
+      // construct text for each public channel
+      let channelMessage = ''
+      for (let channelName in channelInfo) {
+        let important = '(IMPORTANT)'
+        let channelString = `In #${channel}, you have ${channelInfo[channelInfo]['unread']} unread messages.\n`
+        if (channelInfo[channelInfo]['important']) {
+          channelString += important
+        }
+        channelMessage += channelString
+      }
+      twil.sendMessage({
+        to: config.PERSONAL_NUMBER,
+        from: config.TWILIO_NUMBER,
+        body: channelMessage
+      }, (err2, resp2) => {
+        if (err2) {
+          return reject(err2)
+        }
+        // construct text for groupInfo
+        let groupMessage = ''
+        if (groupInfo == {}) {
+          groupMessage = 'No Private Channel Notifications.'
+        } else {
+          for (let group in groupInfo) {
+            let groupString = `#${group} has ${groupInfo[group]} unread messages.`
+          }
+        }
+        twil.sendMessage({
+          to: config.PERSONAL_NUMBER,
+          from: config.TWILIO_NUMBER,
+          body: groupMessage
+        }, (err3, resp3) => {
+          if (err3) {
+            return rejct(err3)
+          }
+          // construct text for imInfo
+          let imMessage = 'Your DMs Notifications:\n'
+          if (imInfo == {}) {
+            imMessage = 'No DM Notifications.'
+          } else {
+            for (let im in imInfo) {
+              let imString = `${im} sent you ${imInfo[im]} messages.\n`
+              imMessage += imString
+            }
+          }
+          twil.sendMessage({
+            to: config.PERSONAL_NUMBER,
+            from: config.TWILIO_NUMBER,
+            body: imMessage
+          }, (err4, resp4) => {
+            if (err4) {
+              return reject(err4)
+            }
+            return resolve({notification: 'Success!'})
+          })
+        })
+      })
+    })
   })
 }
 
