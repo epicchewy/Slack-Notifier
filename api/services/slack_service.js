@@ -8,6 +8,12 @@ const CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS
 const WEB = require('@slack/client').WebClient
 
 class SlackService {
+
+  /**
+    Contructor pertaining to one Slack team that listens and aggregates messages
+    @param {String} token - Authentication token of Slack app
+    @return {SlackService} Instance of the SlackService class
+  */
   constructor (token) {
     this.token = token
     this.channelIds = []
@@ -40,29 +46,38 @@ class SlackService {
     })
   }
 
+  /**
+   * getMessageIds() -- Gathers all necessary IDs
+   *
+   * @param: None
+   * @return: void -- Run member functions to initialize class with channel/group/IM ids
+   */
   getMessageIds() {
-    let latest = new Date()
-    let oldest = new Date()
-    oldest.setMinutes(latest.getMinutes() - 5)
-    let latestTs = Date.parse(latest)/1000
-    let oldestTs = Date.parse(oldest)/1000
     Promise.all([
-        this.findChannels(),
-        this.findGroups(),
-        this.findIMs()
-      ]).then((values) => { // intialize arrays of channel, group, IM ids
-        this.channelIds = values[0]
-        this.groupIds = values[1]
-        this.IMIds = values[2]
-        this.listenToMessages()
-      }).catch((err) => {
-        console.log('Channel errors: ', err)
-      })
+      this.findChannels(),
+      this.findGroups(),
+      this.findIMs()
+    ]).then((values) => {
+      // intialize arrays of channel, group, IM ids
+      this.channelIds = values[0]
+      this.groupIds = values[1]
+      this.IMIds = values[2]
+      this.listenToMessages()
+    }).catch((err) => {
+      console.log('Channel errors: ', err)
+    })
   }
 
+  /**
+   * listenToMessages() -- Listens and watches RTM messages
+   *
+   * @param: None
+   * @return: void -- RTM socket listener
+   */
   listenToMessages () {
     let that = this
-    this.rtm.on(RTM_EVENTS.MESSAGE, function handleRtmMessage (msg) { // track amounts of messages coming into groups / IMs
+    this.rtm.on(RTM_EVENTS.MESSAGE, function handleRtmMessage (msg) {
+      // track amounts of messages coming into groups / IMs
       if (that.groupIds.indexOf(msg.channel) != -1 && msg.user != that.userId) {
         const channel = that.rtm.dataStore.getGroupById(msg.channel)
         if (that.privateMsgs[channel.name]) {
@@ -82,11 +97,23 @@ class SlackService {
     })
   } 
 
+  /**
+   * clearMessages() -- Resets message dictionaries
+   *
+   * @param: None
+   * @return: void
+   */
   clearMessages () {
     this.dms = {}
     this.privateMsgs = {}
   }
 
+  /**
+   * findChannels() -- Runs API call to get all information on user's public channels
+   *
+   * @param: None
+   * @return: {Promise} -- Promise that resolves to all participating channels
+   */
   findChannels () {
     return new Promise((resolve, reject) => {
       this.web.channels.list().then((channels) => {
@@ -105,6 +132,12 @@ class SlackService {
     })
   }
 
+  /**
+   * findGroups() -- Runs API call to get all information on user's private channels
+   *
+   * @param: None
+   * @return: {Promise} -- Promise that resolves to all private channels
+   */
   findGroups () {
     return new Promise((resolve, reject) => {
       this.web.groups.list().then((groups) => {
@@ -121,6 +154,12 @@ class SlackService {
     })
   }
 
+  /**
+   * findIMs() -- Runs API call to get all information on user's IMs
+   *
+   * @param: None
+   * @return: {Promise} -- Promise that resolves to all IMs
+   */
   findIMs () {
     return new Promise((resolve, reject) => {
       this.web.im.list().then((ims) => {
@@ -137,6 +176,12 @@ class SlackService {
     })
   }
 
+  /**
+   * findChannels() -- Aggregates all the tracked messagesm notifications, and unread count
+   *
+   * @param: {Date latest, Date oldest}
+   * @return: {Promise} -- Promise that resolves to all messages and notifications
+   */
   checkDirectMessages (latest, oldest) {
     return new Promise((resolve, reject) => {
       let requests = []
@@ -162,7 +207,8 @@ class SlackService {
             const channelName = this.rtm.dataStore.getGroupById(this.channelIds[0])
             notifications[channelName] = {}
             notifications[channelName]['unread'] = unread
-            for (let i = 0; i < unread; i++) { // search messages for important tags
+            for (let i = 0; i < unread; i++) {
+              // search messages for important tags, break at first instance of an important message
               const numMessages = history.messages.length
               if (values[index].messages[i].indexOf(this.userId) || 
                   values[index].messages[i].indexOf('<!channel>') ||

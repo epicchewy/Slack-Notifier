@@ -51,7 +51,7 @@ function notify (messages) {
     twil.sendMessage({
       to: config.PERSONAL_NUMBER,
       from: config.TWILIO_NUMBER,
-      body: `In your public channels, you have ${unreadCount} unread messages.`
+      body: `In your public channels, you have ${unreadCount} unread messages.\n`
     }, (err1, resp1) => {
       if (err1) {
         return reject(err1)
@@ -77,10 +77,10 @@ function notify (messages) {
         // construct text for groupInfo
         let groupMessage = ''
         if (groupInfo == {}) {
-          groupMessage = 'No Private Channel Notifications.'
+          groupMessage = 'No Private Channel Notifications.\n'
         } else {
           for (let group in groupInfo) {
-            let groupString = `#${group} has ${groupInfo[group]} unread messages.`
+            let groupString = `#${group} has ${groupInfo[group]} unread messages.\n`
           }
         }
         twil.sendMessage({
@@ -127,9 +127,9 @@ function notify (messages) {
 function sendErrorMessage () {
   return new Promise((resolve, reject) => {
     twil.sendMessage({
-      to: config.PERSONAL_NUMBER, // Any number Twilio can deliver to
-      from: config.TWILIO_NUMBER, // A number you bought from Twilio and can use for outbound communication
-      body: 'Sorry, something messed up! Please restart your Slack Notifier at the earliest convenience.' // body of the SMS message
+      to: config.PERSONAL_NUMBER,
+      from: config.TWILIO_NUMBER,
+      body: 'Sorry, something messed up! Please restart your Slack Notifier at the earliest convenience.'
     }, (err, resp) => {
       if (err) {
         return reject(err)

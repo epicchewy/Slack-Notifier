@@ -39,6 +39,7 @@ agenda.define('send-notifications', (job, done) => {
   let latestTs = Date.parse(latest)/1000
   let oldestTs = Date.parse(oldest)/1000
 
+  // Aggregate and send SMSs for each Slack team
   for (let team in slackTeams) {
     team.checkMessages(latestTs, oldestTs).then((messageObject) => {
       Twilio.notify(messageObject).then((resp) => {
