@@ -126,7 +126,7 @@ function enterTeamInformation () {
  * slackSetupListeners() -- Instantiate listeners for all Slack teams
  *
  * @param: None
- * @return: [ Array ] of listening Slack RTM Clients
+ * @return: void - Sets global array of initialized Slack team instances
  */
 
 function slackSetupListeners () {

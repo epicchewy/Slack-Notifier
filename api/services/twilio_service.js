@@ -109,6 +109,7 @@ function notify (messages) {
             if (err4) {
               return reject(err4)
             }
+            // this is unfortunately very gross -- should refactor
             return resolve({notification: 'Success!'})
           })
         })
